@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShieldCheck | Password Security Pro</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- Topbar -->
+  <nav class="topbar">
+    <div class="topbar-brand">
+      <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+      ShieldCheck
+    </div>
+    <span class="topbar-badge">Security Pro</span>
+  </nav>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="eyebrow">Enterprise Grade</div>
+      <h1><i class="fa-solid fa-shield-halved"></i> ShieldCheck</h1>
+      <p class="subtitle">Enterprise-grade password analysis &amp; breach detection</p>
+    </header>
+
+    <!-- Input Section -->
+    <div class="input-section">
+      <div class="input-label">Password</div>
+      <div class="inputBox">
+        <input type="password" id="password" placeholder="Enter or generate password" oninput="liveAnalyze()">
+        <div class="input-actions">
+          <span class="action-icon" onclick="copyPassword()" title="Copy to Clipboard">
+            <i class="fa-solid fa-copy" id="copyIcon"></i>
+          </span>
+          <span class="toggle" onclick="togglePassword()" title="Toggle visibility">
+            <i class="fa-solid fa-eye-slash" id="toggleIcon"></i>
+          </span>
+        </div>
+      </div>
+
+      <!-- Generator Options -->
+      <div class="generator-options">
+        <label class="gen-label"><i class="fa-solid fa-sliders"></i> Length: <span id="lengthVal">16</span></label>
+        <input type="range" id="lengthSlider" min="8" max="32" value="16"
+          oninput="document.getElementById('lengthVal').textContent = this.value" class="length-slider">
+      </div>
+
+      <div class="buttons">
+        <button onclick="checkPassword()" class="btn-primary" id="analyzeBtn">
+          <i class="fa-solid fa-magnifying-glass"></i> Analyze
+        </button>
+        <button onclick="generatePassword()" class="btn-secondary">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Generate
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="label">Entropy</span>
+        <span id="entropy" class="value">— bits</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Crack Time</span>
+        <span id="crackTime" class="value">—</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Score</span>
+        <span id="scoreVal" class="value">— / 10</span>
+      </div>
+      <div class="stat-card">
+        <span class="label">Charset Size</span>
+        <span id="charsetSize" class="value">—</span>
+      </div>
+    </div>
+
+    <!-- Strength Meter -->
+    <div class="meter-container">
+      <div class="meter-label">
+        <span id="strengthText">Strength: —</span>
+        <span id="scorePercent">0%</span>
+      </div>
+      <div class="meter">
+        <div id="strengthBar"></div>
+      </div>
+    </div>
+
+    <!-- Breach Status -->
+    <div id="breachStatus">
+      <i class="fa-solid fa-circle-check" id="scan-info" style="color: var(--green)"></i>
+      Ready to scan
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions">
+      <h3><i class="fa-solid fa-lightbulb"></i> Security Checklist</h3>
+      <ul id="suggestionsList">
+        <li>
+          <i class="fa-solid fa-circle-info" style="color: var(--muted)"></i>
+          Enter a password to see the security checklist
+        </li>
+      </ul>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="report-section">
+      <div class="report-header">
+        <h3><i class="fa-solid fa-terminal"></i> Detailed Audit Log</h3>
+        <button class="download-btn" onclick="downloadReport()" title="Download Report">
+          <i class="fa-solid fa-download"></i> Export
+        </button>
+      </div>
+      <pre id="report">No audit data available. Click Analyze to generate a report.</pre>
+    </div>
+
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <i class="fa-solid fa-check" style="color: var(--green)"></i>
+    <span id="toastMsg">Done!</span>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+
+</html>
