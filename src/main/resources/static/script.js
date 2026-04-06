@@ -1,5 +1,5 @@
-const API_BASE = "http://localhost:8080/api/password";
-
+// const API_BASE = "http://localhost:8080/api/password";
+const API_BASE = "/api/password";
 /* ── Helpers ──────────────────────────────────────────────── */
 
 function showToast(iconClass, msg) {
