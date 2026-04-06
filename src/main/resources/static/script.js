@@ -211,13 +211,14 @@ async function checkPassword() {
     return;
   }
 
-  // Show loading state
   const btn = document.getElementById("analyzeBtn");
   btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Analyzing...';
   btn.disabled = true;
 
+  let score = computeScore(password);
+  let entropy = computeEntropy(password);
+
   try {
-    // Call backend API
     const response = await fetch(`${API_BASE}/check`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -226,38 +227,33 @@ async function checkPassword() {
 
     if (response.ok) {
       const data = await response.json();
+      score = data.score;
+      entropy = data.entropy;
 
-      // Use backend values for official results
       document.getElementById("entropy").innerText = data.entropy + " bits";
       document.getElementById("crackTime").innerText = data.crackTime;
       document.getElementById("scoreVal").innerText = data.score + " / 10";
       applyStrengthColor(data.score);
-      document.getElementById("report").innerText = data.report;
       updateSuggestions(password);
-
-      // Breach result from backend (simulated DB check)
-      updateBreachUI(data.breached, "Backend DB");
 
     } else {
       throw new Error("Backend error");
     }
 
   } catch (err) {
-    // Backend unavailable — fall back to frontend-only analysis
     console.warn("Backend unavailable, using frontend analysis:", err);
-    const score = computeScore(password);
-    const entropy = computeEntropy(password);
     applyStrengthColor(score);
     document.getElementById("entropy").innerText = entropy + " bits";
     document.getElementById("crackTime").innerText = estimateCrackTime(entropy);
     document.getElementById("scoreVal").innerText = score + " / 10";
     updateSuggestions(password);
-    document.getElementById("report").innerText =
-      buildFrontendReport(password, score, entropy);
   }
 
-  // Always run HIBP real-time breach check
+  // ✅ Wait for HIBP to finish FIRST — isBreached is now set correctly
   await checkBreach(password);
+
+  // ✅ Now build the report AFTER breach result is known
+  document.getElementById("report").innerText = buildFinalReport(password, score, entropy);
 
   btn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Analyze';
   btn.disabled = false;
@@ -392,6 +388,31 @@ function buildFrontendReport(password, score, entropy) {
 //   showToast('fa-solid fa-download', 'Report downloaded!');
 // }
 
+function buildFinalReport(password, score, entropy) {
+  const label = getStrengthLabel(score);
+  const crack = estimateCrackTime(entropy);
+
+  // ✅ Uses the global isBreached which is set after HIBP completes
+  const breachLine = isBreached
+    ? "BREACH FOUND — This password has been leaked. Change it immediately."
+    : "Not found in breach database";
+
+  return [
+    "=== ShieldCheck Security Report ===\n",
+    `Strength Level : ${label}`,
+    `Score          : ${score} / 10`,
+    `Entropy        : ${entropy} bits`,
+    `Est. Crack Time: ${crack}`,
+    `Breach Status  : ${breachLine}`,
+    `\n--- Checklist ---`,
+    `${password.length >= 8 ? "[PASS]" : "[FAIL]"} Minimum 8 characters (length: ${password.length})`,
+    `${password.length >= 12 ? "[PASS]" : "[FAIL]"} Recommended 12+ characters`,
+    `${/[A-Z]/.test(password) ? "[PASS]" : "[FAIL]"} Contains uppercase letters`,
+    `${/[a-z]/.test(password) ? "[PASS]" : "[FAIL]"} Contains lowercase letters`,
+    `${/[0-9]/.test(password) ? "[PASS]" : "[FAIL]"} Contains numbers`,
+    `${/[^a-zA-Z0-9]/.test(password) ? "[PASS]" : "[FAIL]"} Contains special characters`,
+  ].join('\n');
+}
 
 function downloadReport() {
   const { jsPDF } = window.jspdf;
