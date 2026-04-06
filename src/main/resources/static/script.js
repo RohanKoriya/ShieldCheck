@@ -1,6 +1,7 @@
 // const API_BASE = "http://localhost:8080/api/password";
 const API_BASE = "/api/password";
 /* ── Helpers ──────────────────────────────────────────────── */
+let isBreached = false;
 
 function showToast(iconClass, msg) {
   const toast = document.getElementById('toast');
@@ -286,6 +287,8 @@ async function checkBreach(password) {
     // FIX #3: split lines and compare prefix before the colon (prevents false-positive substring matches)
     const found = text.split('\n').some(line => line.trim().split(':')[0] === suffix);
 
+    isBreached = found;
+
     updateBreachUI(found, "HIBP API");
 
   } catch (e) {
@@ -397,7 +400,10 @@ function downloadReport() {
   const entropy = document.getElementById("entropy").innerText;
   const crackTime = document.getElementById("crackTime").innerText;
   const strength = document.getElementById("strengthText").innerText;
-  const breach = document.getElementById("breachStatus").innerText.trim();
+
+  const breach = isBreached
+    ? "BREACH FOUND — This password has been leaked (HIBP API). Change it immediately."
+    : "Not found in breach database";
   const reportText = document.getElementById("report").innerText;
 
   // Mask password (same as your logic ✅)
