@@ -391,27 +391,142 @@ function buildFrontendReport(password, score, entropy) {
 function buildFinalReport(password, score, entropy) {
   const label = getStrengthLabel(score);
   const crack = estimateCrackTime(entropy);
+  const { size } = getCharsetInfo(password);
+  const now = new Date().toLocaleString();
 
-  // ✅ Uses the global isBreached which is set after HIBP completes
+  // ── Breach line ──
   const breachLine = isBreached
-    ? "BREACH FOUND — This password has been leaked. Change it immediately."
-    : "Not found in breach database";
+    ? "⚠ BREACH FOUND — This password has been leaked in a public data breach.\n  Change it immediately on all accounts where it is used."
+    : "✔ Not found in any known breach database (checked via HIBP API)";
 
-  return [
-    "=== ShieldCheck Security Report ===\n",
-    `Strength Level : ${label}`,
-    `Score          : ${score} / 10`,
-    `Entropy        : ${entropy} bits`,
-    `Est. Crack Time: ${crack}`,
-    `Breach Status  : ${breachLine}`,
-    `\n--- Checklist ---`,
-    `${password.length >= 8 ? "[PASS]" : "[FAIL]"} Minimum 8 characters (length: ${password.length})`,
-    `${password.length >= 12 ? "[PASS]" : "[FAIL]"} Recommended 12+ characters`,
-    `${/[A-Z]/.test(password) ? "[PASS]" : "[FAIL]"} Contains uppercase letters`,
-    `${/[a-z]/.test(password) ? "[PASS]" : "[FAIL]"} Contains lowercase letters`,
-    `${/[0-9]/.test(password) ? "[PASS]" : "[FAIL]"} Contains numbers`,
-    `${/[^a-zA-Z0-9]/.test(password) ? "[PASS]" : "[FAIL]"} Contains special characters`,
-  ].join('\n');
+  // ── Checklist ──
+  const checks = [
+    { pass: password.length >= 8, msg: "Minimum 8 characters (length: " + password.length + ")" },
+    { pass: password.length >= 12, msg: "Recommended 12+ characters" },
+    { pass: password.length >= 16, msg: "Excellent 16+ characters" },
+    { pass: /[A-Z]/.test(password), msg: "Contains uppercase letters (A-Z)" },
+    { pass: /[a-z]/.test(password), msg: "Contains lowercase letters (a-z)" },
+    { pass: /[0-9]/.test(password), msg: "Contains numbers (0-9)" },
+    { pass: /[^a-zA-Z0-9]/.test(password), msg: "Contains special characters (!@#$...)" },
+    { pass: !isBreached, msg: "Not found in breach databases" },
+  ];
+
+  const checklistLines = checks
+    .map(c => `  ${c.pass ? "[PASS]" : "[FAIL]"}  ${c.msg}`)
+    .join("\n");
+
+  // ── Recommendations ──
+  const recs = [];
+  if (password.length < 12)
+    recs.push("• Increase length to at least 12 characters (longer = exponentially harder to crack)");
+  if (password.length < 16)
+    recs.push("• Consider using 16+ characters for maximum security");
+  if (!/[A-Z]/.test(password))
+    recs.push("• Add uppercase letters (A-Z) to increase character variety");
+  if (!/[a-z]/.test(password))
+    recs.push("• Add lowercase letters (a-z)");
+  if (!/[0-9]/.test(password))
+    recs.push("• Add numbers (0-9) to strengthen the password");
+  if (!/[^a-zA-Z0-9]/.test(password))
+    recs.push("• Add special characters (!@#$%^&*) — these dramatically increase entropy");
+  if (isBreached)
+    recs.push("• URGENT: This password was found in a data breach — stop using it immediately");
+  if (isBreached)
+    recs.push("• Change this password on every account where it has been used");
+  if (score <= 5)
+    recs.push("• Avoid using dictionary words, names, or predictable patterns (e.g. 'Password1')");
+  if (score <= 7)
+    recs.push("• Consider using a passphrase: 4 random words strung together are strong and memorable");
+
+  const recLines = recs.length > 0
+    ? recs.join("\n")
+    : "  ✔ No recommendations — your password meets all security criteria.";
+
+  // ── Risk Level ──
+  let riskLevel, riskNote;
+  if (isBreached || score <= 3) {
+    riskLevel = "CRITICAL";
+    riskNote = "Immediate action required. Do not use this password.";
+  } else if (score <= 5) {
+    riskLevel = "HIGH";
+    riskNote = "This password is weak and should be changed soon.";
+  } else if (score <= 7) {
+    riskLevel = "MODERATE";
+    riskNote = "Acceptable but can be improved with more complexity.";
+  } else {
+    riskLevel = "LOW";
+    riskNote = "This password is strong. Store it in a password manager.";
+  }
+
+  // ── Security Tips (always shown) ──
+  const tips = [
+    "1. Never reuse the same password across multiple accounts.",
+    "2. Use a password manager (e.g. Bitwarden, 1Password) to store passwords safely.",
+    "3. Enable Two-Factor Authentication (2FA) wherever possible.",
+    "4. Change passwords immediately if you suspect a breach.",
+    "5. Never share your password via email, SMS, or chat.",
+    "6. Avoid using personal info (birthdays, names, pet names) in passwords.",
+    "7. Passphrases like 'Coffee-Lamp-River-42!' are strong AND memorable.",
+  ].join("\n  ");
+
+  return `
+╔══════════════════════════════════════════════════════╗
+║         ShieldCheck — Password Security Report       ║
+║                  Confidential Report                 ║
+╚══════════════════════════════════════════════════════╝
+
+  Generated On  : ${now}
+  Tool Version  : ShieldCheck v2.0
+  Analysis Mode : Full (Backend + HIBP API)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PASSWORD METRICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Length         : ${password.length} characters
+  Charset Size   : ${size} possible characters
+  Entropy        : ${entropy} bits
+  Strength       : ${label} (${score}/10)
+  Est. Crack Time: ${crack}  (at 1 billion guesses/sec)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RISK ASSESSMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Risk Level     : ${riskLevel}
+  Summary        : ${riskNote}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  BREACH DETECTION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ${breachLine}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  SECURITY CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${checklistLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${recLines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  GENERAL SECURITY TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ${tips}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DISCLAIMER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  This report is generated for educational purposes.
+  Breach data is sourced from HaveIBeenPwned (HIBP).
+  No passwords are stored or transmitted by ShieldCheck.
+  SHA-1 k-anonymity is used — only the first 5 characters
+  of the hash are sent to HIBP, never the full password.
+
+══════════════════════════════════════════════════════
+  Report generated by ShieldCheck | Confidential
+══════════════════════════════════════════════════════
+`.trim();
 }
 
 function downloadReport() {
