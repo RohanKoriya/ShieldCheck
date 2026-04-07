@@ -533,16 +533,20 @@ function downloadReport() {
   const { jsPDF } = window.jspdf;
 
   const password = document.getElementById("password").value;
-  const entropy = document.getElementById("entropy").innerText;
+
   const crackTime = document.getElementById("crackTime").innerText;
   const strength = document.getElementById("strengthText").innerText;
+
+  const score = computeScore(password);
+  const entropy = computeEntropy(password);
 
   const breach = isBreached
     ? "BREACH FOUND — This password has been leaked (HIBP API). Change it immediately."
     : "Not found in breach database";
-  const reportText = document.getElementById("report").innerText;
 
-  // Mask password (same as your logic ✅)
+  const reportText = buildFinalReport(password, score, entropy);
+
+  // Mask password 
   const maskedPassword = password.length > 0
     ? "*".repeat(password.length) + ` (${password.length} characters)`
     : "N/A";
@@ -561,7 +565,7 @@ Password Information
 --------------------------------------
 Password     : ${maskedPassword}
 ${strength}
-Entropy      : ${entropy}
+Entropy      : ${entropy} bits
 Crack Time   : ${crackTime}
 
 Breach Detection
